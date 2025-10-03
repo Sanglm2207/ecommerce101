@@ -42,6 +42,9 @@ dependencies {
     implementation 'com.turkraft.springfilter:core:3.2.1'
     implementation 'com.turkraft.springfilter:jpa:3.2.1'
 
+    //Payment
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+
 
     // Testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
