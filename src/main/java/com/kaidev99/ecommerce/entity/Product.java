@@ -2,8 +2,10 @@ package com.kaidev99.ecommerce.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -28,4 +30,15 @@ public class Product {
 
     @Column(name = "stock_quantity", nullable = false)
     private int stockQuantity;
+
+    @ManyToOne(fetch = FetchType.LAZY) // LAZY loading để tối ưu hiệu năng
+    @JoinColumn(name = "category_id", nullable = false)
+    private Category category;
+
+    @Column(name = "is_featured", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean isFeatured = false; // Mặc định là không nổi bật
+
+    @CreationTimestamp // Tự động gán thời gian tạo
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 }

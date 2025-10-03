@@ -37,6 +37,9 @@ dependencies {
     // Utilities
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+    implementation 'com.turkraft.springfilter:core:3.2.1'
+    implementation 'com.turkraft.springfilter:jpa:3.2.1'
+
 
     // Testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
