@@ -1,7 +1,9 @@
 package com.kaidev99.ecommerce.controller;
 
 import com.kaidev99.ecommerce.dto.AuthRequestDTO;
+import com.kaidev99.ecommerce.entity.Role;
 import com.kaidev99.ecommerce.entity.User;
+import com.kaidev99.ecommerce.payload.ApiResponse;
 import com.kaidev99.ecommerce.repository.UserRepository;
 import com.kaidev99.ecommerce.util.JwtUtil;
 import com.kaidev99.ecommerce.util.RequestUtil;
@@ -32,20 +34,27 @@ public class AuthController {
     private final JwtUtil jwtUtil;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody AuthRequestDTO request) {
+    public ResponseEntity<ApiResponse<String>> register(@RequestBody AuthRequestDTO request) {
         if (userRepository.findByUsername(request.username()).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Username is already taken!");
+            ApiResponse<String> response = ApiResponse.error(
+                    HttpStatus.CONFLICT,
+                    "Username is already taken!");
+            return new ResponseEntity<>(response, HttpStatus.CONFLICT);
         }
+
         User user = new User();
         user.setUsername(request.username());
         user.setPassword(passwordEncoder.encode(request.password()));
+        user.setRole(Role.USER);
         userRepository.save(user);
-        return ResponseEntity.ok("User registered successfully!");
+
+        ApiResponse<String> response = ApiResponse.success(HttpStatus.CREATED, "User registered successfully!");
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     };
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody AuthRequestDTO requestDTO, HttpServletRequest request,
-            HttpServletResponse response) {
+    public ResponseEntity<ApiResponse<String>> login(@RequestBody AuthRequestDTO requestDTO, HttpServletRequest request,
+            HttpServletResponse httpResponse) {
         authenticationManager
                 .authenticate(new UsernamePasswordAuthenticationToken(requestDTO.username(), requestDTO.password()));
 
@@ -69,10 +78,11 @@ public class AuthController {
         refreshTokenCookie.setPath("/");
         refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7 ngày
 
-        response.addCookie(accessTokenCookie);
-        response.addCookie(refreshTokenCookie);
+        httpResponse.addCookie(accessTokenCookie);
+        httpResponse.addCookie(refreshTokenCookie);
 
-        return ResponseEntity.ok("Login successful");
+        ApiResponse<String> response = ApiResponse.success(HttpStatus.OK, "Login successful");
+        return ResponseEntity.ok(response);
     };
 
     @PostMapping("/refresh")
@@ -111,7 +121,7 @@ public class AuthController {
     };
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(HttpServletResponse response) {
+    public ResponseEntity<ApiResponse<String>> logout(HttpServletResponse httpResponse) {
         Cookie accessTokenCookie = new Cookie("access_token", null);
         accessTokenCookie.setMaxAge(0);
         accessTokenCookie.setHttpOnly(true);
@@ -122,10 +132,11 @@ public class AuthController {
         refreshTokenCookie.setHttpOnly(true);
         refreshTokenCookie.setPath("/");
 
-        response.addCookie(accessTokenCookie);
-        response.addCookie(refreshTokenCookie);
+        httpResponse.addCookie(accessTokenCookie);
+        httpResponse.addCookie(refreshTokenCookie);
 
-        return ResponseEntity.ok("Logout successful");
+        ApiResponse<String> response = ApiResponse.success(HttpStatus.OK, "Logout successful");
+        return ResponseEntity.ok(response);
     }
 
 }

@@ -2,12 +2,14 @@ package com.kaidev99.ecommerce.controller;
 
 import com.kaidev99.ecommerce.dto.ProductRequestDTO;
 import com.kaidev99.ecommerce.entity.Product;
+import com.kaidev99.ecommerce.payload.ApiResponse;
 import com.kaidev99.ecommerce.service.ProductService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,22 +23,25 @@ public class ProductController {
 
     // API để tạo sản phẩm mới
     @PostMapping
-    public ResponseEntity<Product> createProduct(@Valid @RequestBody ProductRequestDTO productRequestDTO) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Product>> createProduct(@Valid @RequestBody ProductRequestDTO productRequestDTO) {
         Product createdProduct = productService.createProduct(productRequestDTO);
-        return new ResponseEntity<>(createdProduct, HttpStatus.CREATED);
+        ApiResponse<Product> response = ApiResponse.success(HttpStatus.CREATED, "Product created successfully",
+                createdProduct);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    // API để lấy danh sách tất cả sản phẩm
     @GetMapping
-    public ResponseEntity<List<Product>> getAllProducts() {
+    public ResponseEntity<ApiResponse<List<Product>>> getAllProducts() {
         List<Product> products = productService.getAllProducts();
-        return ResponseEntity.ok(products); // Tương đương new ResponseEntity<>(products, HttpStatus.OK)
+        ApiResponse<List<Product>> response = ApiResponse.success(products);
+        return ResponseEntity.ok(response);
     }
 
-    // API để lấy một sản phẩm theo ID
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Product>> getProductById(@PathVariable Long id) {
         Product product = productService.getProductById(id);
-        return ResponseEntity.ok(product);
+        ApiResponse<Product> response = ApiResponse.success(product);
+        return ResponseEntity.ok(response);
     }
 }
