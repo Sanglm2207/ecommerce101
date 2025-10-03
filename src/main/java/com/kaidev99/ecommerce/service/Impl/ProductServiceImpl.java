@@ -31,10 +31,10 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Product createProduct(ProductRequestDTO productRequestDTO) {
         Product product = new Product();
-        product.setName(productRequestDTO.getName());
-        product.setDescription(productRequestDTO.getDescription());
-        product.setPrice(productRequestDTO.getPrice());
-        product.setStockQuantity(productRequestDTO.getStockQuantity());
+        product.setName(productRequestDTO.name());
+        product.setDescription(productRequestDTO.description());
+        product.setPrice(productRequestDTO.price());
+        product.setStockQuantity(productRequestDTO.stockQuantity());
 
         return productRepository.save(product);
     }
