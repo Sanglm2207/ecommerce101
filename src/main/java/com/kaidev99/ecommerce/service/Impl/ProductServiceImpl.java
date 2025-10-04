@@ -3,23 +3,24 @@ package com.kaidev99.ecommerce.service.Impl;
 import com.kaidev99.ecommerce.dto.ProductDetailDTO;
 import com.kaidev99.ecommerce.dto.ProductRequestDTO;
 import com.kaidev99.ecommerce.dto.ProductSuggestionDTO;
+import com.kaidev99.ecommerce.dto.ProductSummaryDTO;
 import com.kaidev99.ecommerce.entity.Category;
 import com.kaidev99.ecommerce.entity.Product;
 import com.kaidev99.ecommerce.exception.ResourceNotFoundException;
+import com.kaidev99.ecommerce.mapper.ProductMapper;
 import com.kaidev99.ecommerce.repository.ProductRepository;
 import com.kaidev99.ecommerce.service.CategoryService;
 import com.kaidev99.ecommerce.service.ProductService;
 
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +28,7 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryService categoryService;
+    private final ProductMapper productMapper;
 
     @Override
     public Page<Product> findAll(Specification<Product> spec, Pageable pageable) {
@@ -54,9 +56,15 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public List<Product> getLatestProducts(int limit) {
-        // Tạo một PageRequest chỉ để lấy trang đầu tiên với số lượng 'limit'
-        return productRepository.findByOrderByCreatedAtDesc(PageRequest.of(0, limit));
+    public Page<ProductSummaryDTO> getLatestProducts(int limit) {
+        Pageable pageable = PageRequest.of(0, limit, Sort.by("createdAt").descending());
+        Page<Product> productPage = productRepository.findAll(pageable);
+
+        List<ProductSummaryDTO> dtos = productPage.getContent().stream()
+                .map(productMapper::toProductSummaryDTO)
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(dtos, pageable, productPage.getTotalElements());
     }
 
     @Override

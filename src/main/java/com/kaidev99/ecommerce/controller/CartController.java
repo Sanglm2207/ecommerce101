@@ -13,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/cart")
@@ -52,5 +53,21 @@ public class CartController {
         String username = getCurrentUsername(authentication);
         cartService.clearCart(username);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK, "Cart cleared"));
+    }
+
+    @DeleteMapping("/items")
+    public ResponseEntity<ApiResponse<Void>> removeMultipleItemsFromCart(
+            @RequestBody Map<String, List<Long>> payload,
+            Authentication authentication) {
+
+        List<Long> productIds = payload.get("productIds");
+        if (productIds == null || productIds.isEmpty()) {
+            return new ResponseEntity<>(ApiResponse.error(HttpStatus.BAD_REQUEST, "Product IDs are required."), HttpStatus.BAD_REQUEST);
+        }
+
+        String username = getCurrentUsername(authentication);
+        cartService.removeMultipleItems(username, productIds);
+
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK, "Selected items removed from cart"));
     }
 }

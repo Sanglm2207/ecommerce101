@@ -3,6 +3,7 @@ package com.kaidev99.ecommerce.controller;
 import com.kaidev99.ecommerce.dto.ProductDetailDTO;
 import com.kaidev99.ecommerce.dto.ProductRequestDTO;
 import com.kaidev99.ecommerce.dto.ProductSuggestionDTO;
+import com.kaidev99.ecommerce.dto.ProductSummaryDTO;
 import com.kaidev99.ecommerce.entity.Product;
 import com.kaidev99.ecommerce.payload.ApiResponse;
 import com.kaidev99.ecommerce.service.ProductService;
@@ -56,10 +57,9 @@ public class ProductController {
     }
 
     @GetMapping("/latest")
-    public ResponseEntity<ApiResponse<List<Product>>> getLatestProducts(
-            @RequestParam(defaultValue = "10") int limit) {
-        List<Product> products = productService.getLatestProducts(limit);
-        return ResponseEntity.ok(ApiResponse.success(products));
+    public ResponseEntity<ApiResponse<Page<ProductSummaryDTO>>> getLatestProducts(@RequestParam(defaultValue = "8") int limit) {
+        Page<ProductSummaryDTO> productDtos = productService.getLatestProducts(limit);
+        return ResponseEntity.ok(ApiResponse.success(productDtos));
     }
 
     @GetMapping("/featured")

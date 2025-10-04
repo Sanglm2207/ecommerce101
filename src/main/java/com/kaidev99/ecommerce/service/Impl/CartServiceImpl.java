@@ -67,4 +67,20 @@ public class CartServiceImpl implements CartService {
         String cartKey = CART_KEY_PREFIX + username;
         redisTemplate.delete(cartKey);
     }
+
+    @Override
+    public void removeMultipleItems(String username, List<Long> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return;
+        }
+        String cartKey = CART_KEY_PREFIX + username;
+
+        // Chuyển danh sách ID thành mảng các field key của Redis Hash
+        Object[] fields = productIds.stream()
+                .map(id -> "productId:" + id)
+                .toArray();
+
+        // Gọi lệnh xóa nhiều field một lúc
+        redisTemplate.opsForHash().delete(cartKey, fields);
+    }
 }

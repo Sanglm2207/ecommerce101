@@ -22,7 +22,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     // Lấy các sản phẩm cùng category, trừ sản phẩm hiện tại
     List<Product> findTop4ByCategoryIdAndIdNot(Long categoryId, Long productId);
 
-    @Query("SELECT new com.kaidev99.ecommerce.dto.ProductSuggestionDTO(p.id, p.name) " +
+    @Query("SELECT new com.kaidev99.ecommerce.dto.ProductSuggestionDTO(p.id, p.name, p.price) " +
             "FROM Product p WHERE lower(p.name) LIKE lower(concat('%', :keyword, '%'))")
     List<ProductSuggestionDTO> findSuggestions(@Param("keyword") String keyword, Pageable pageable);
 }

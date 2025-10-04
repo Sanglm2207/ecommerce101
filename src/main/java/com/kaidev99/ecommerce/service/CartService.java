@@ -9,4 +9,6 @@ public interface CartService {
     List<CartItemDTO> getCart(String username);
     void removeItem(String username, Long productId);
     void clearCart(String username);
+    void removeMultipleItems(String username, List<Long> productIds); // THÊM PHƯƠNG THỨC MỚI
+
 }

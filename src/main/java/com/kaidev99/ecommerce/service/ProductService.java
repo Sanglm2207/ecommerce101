@@ -3,6 +3,7 @@ package com.kaidev99.ecommerce.service;
 import com.kaidev99.ecommerce.dto.ProductDetailDTO;
 import com.kaidev99.ecommerce.dto.ProductRequestDTO;
 import com.kaidev99.ecommerce.dto.ProductSuggestionDTO;
+import com.kaidev99.ecommerce.dto.ProductSummaryDTO;
 import com.kaidev99.ecommerce.entity.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,7 +18,7 @@ public interface ProductService {
 
     Product createProduct(ProductRequestDTO productRequestDTO);
 
-    List<Product> getLatestProducts(int limit);
+    Page<ProductSummaryDTO>  getLatestProducts(int limit);
 
     List<Product> getFeaturedProducts(int limit);
 
