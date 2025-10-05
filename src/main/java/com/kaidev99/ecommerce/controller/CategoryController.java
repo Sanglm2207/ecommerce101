@@ -2,6 +2,7 @@ package com.kaidev99.ecommerce.controller;
 
 import java.util.List;
 
+import com.kaidev99.ecommerce.dto.ProductSummaryDTO;
 import com.kaidev99.ecommerce.entity.Product;
 import com.kaidev99.ecommerce.service.ProductService;
 import com.turkraft.springfilter.boot.Filter;
@@ -77,20 +78,21 @@ public class CategoryController {
      * Hỗ trợ đầy đủ lọc, sắp xếp, phân trang trên tập sản phẩm đó.
      */
     @GetMapping("/{id}/products")
-    public ResponseEntity<ApiResponse<Page<Product>>> getProductsByCategoryId(
-            @PathVariable Long id,
-            @Filter(entityClass = Product.class) Specification<Product> spec,
-            Pageable pageable) {
+    public ResponseEntity<ApiResponse<Page<ProductSummaryDTO>>> getProductsByCategoryId( // 2. SỬA KIỂU TRẢ VỀ
+                                                                                         @PathVariable Long id,
+                                                                                         @Filter(entityClass = Product.class) Specification<Product> spec,
+                                                                                         Pageable pageable) {
 
-        // Tạo một specification để lọc theo categoryId
+        // Tạo một specification để luôn luôn lọc theo categoryId từ đường dẫn
         Specification<Product> categorySpec = (root, query, builder) ->
                 builder.equal(root.get("category").get("id"), id);
 
-        // Kết hợp specification của category với specification từ filter của người dùng
-        Specification<Product> finalSpec = categorySpec.and(spec);
+        // Kết hợp specification của category với specification từ filter (nếu có)
+        Specification<Product> finalSpec = spec != null ? categorySpec.and(spec) : categorySpec;
 
-        Page<Product> productPage = productService.findAll(finalSpec, pageable);
+        // Gọi service và nhận về Page<ProductSummaryDTO>
+        Page<ProductSummaryDTO> productDtoPage = productService.findAll(finalSpec, pageable); // 3. SỬA KIỂU BIẾN
 
-        return ResponseEntity.ok(ApiResponse.success(productPage));
+        return ResponseEntity.ok(ApiResponse.success(productDtoPage));
     }
 }

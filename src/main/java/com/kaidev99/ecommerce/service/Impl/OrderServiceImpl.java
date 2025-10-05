@@ -4,6 +4,7 @@ import com.kaidev99.ecommerce.dto.CartItemDTO;
 import com.kaidev99.ecommerce.dto.OrderRequestDTO;
 import com.kaidev99.ecommerce.entity.*;
 import com.kaidev99.ecommerce.exception.ResourceNotFoundException;
+import com.kaidev99.ecommerce.repository.CouponRepository;
 import com.kaidev99.ecommerce.repository.OrderRepository;
 import com.kaidev99.ecommerce.repository.ProductRepository;
 import com.kaidev99.ecommerce.service.CartService;
@@ -16,6 +17,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -24,6 +26,7 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+    private final CouponRepository couponRepository;
     private final CartService cartService;
 
     @Override
@@ -45,6 +48,31 @@ public class OrderServiceImpl implements OrderService {
         order.setPaymentMethod(orderRequestDTO.paymentMethod());
 
         BigDecimal totalAmount = BigDecimal.ZERO;
+
+        // --- LOGIC XỬ LÝ COUPON ---
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        if (orderRequestDTO.couponCode() != null && !orderRequestDTO.couponCode().isEmpty()) {
+            Coupon coupon = couponRepository.findByCode(orderRequestDTO.couponCode())
+                    .orElseThrow(() -> new IllegalArgumentException("Mã giảm giá không hợp lệ."));
+
+            // Kiểm tra coupon
+            if (!coupon.isActive() ||
+                    coupon.getUsageCount() >= coupon.getMaxUsage() ||
+                    coupon.getExpiryDate().isBefore(LocalDate.now())) {
+                throw new IllegalArgumentException("Mã giảm giá đã hết hạn hoặc không thể sử dụng.");
+            }
+
+            // Tính toán số tiền giảm
+            if (coupon.getDiscountType() == Coupon.DiscountType.FIXED_AMOUNT) {
+                discountAmount = coupon.getDiscountValue();
+            } else if (coupon.getDiscountType() == Coupon.DiscountType.PERCENTAGE) {
+                discountAmount = totalAmount.multiply(coupon.getDiscountValue().divide(new BigDecimal("100")));
+            }
+
+            // Cập nhật số lượt sử dụng
+            coupon.setUsageCount(coupon.getUsageCount() + 1);
+            couponRepository.save(coupon);
+        }
 
         // 3. Xử lý từng item trong giỏ hàng
         for (CartItemDTO cartItem : cartItems) {
@@ -69,7 +97,9 @@ public class OrderServiceImpl implements OrderService {
             totalAmount = totalAmount.add(product.getPrice().multiply(new BigDecimal(cartItem.quantity())));
         }
 
-        order.setTotalAmount(totalAmount);
+        order.setTotalAmount(totalAmount.subtract(discountAmount)); // Gán tổng tiền sau khi giảm
+        order.setCouponCode(orderRequestDTO.couponCode());
+        order.setDiscountAmount(discountAmount);
 
         // 7. Lưu đơn hàng (bao gồm cả OrderItems nhờ cascade = CascadeType.ALL)
         Order savedOrder = orderRepository.save(order);

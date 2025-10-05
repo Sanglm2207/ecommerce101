@@ -50,6 +50,12 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> orderItems = new ArrayList<>();
 
+    @Column(name = "coupon_code")
+    private String couponCode; // Mã coupon đã áp dụng
+
+    @Column(name = "discount_amount", precision = 12, scale = 2)
+    private BigDecimal discountAmount; // Số tiền đã được giảm
+
     // Hàm tiện ích để thêm item vào đơn hàng
     public void addOrderItem(OrderItem item) {
         orderItems.add(item);

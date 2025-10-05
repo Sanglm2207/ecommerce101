@@ -12,6 +12,7 @@ import com.kaidev99.ecommerce.repository.ProductRepository;
 import com.kaidev99.ecommerce.service.CategoryService;
 import com.kaidev99.ecommerce.service.ProductService;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.*;
@@ -31,8 +32,11 @@ public class ProductServiceImpl implements ProductService {
     private final ProductMapper productMapper;
 
     @Override
-    public Page<Product> findAll(Specification<Product> spec, Pageable pageable) {
-        return productRepository.findAll(spec, pageable);
+    public Page<ProductSummaryDTO> findAll(Specification<Product> spec, Pageable pageable) {
+        Page<Product> productPage = productRepository.findAll(spec, pageable);
+
+        // Dùng map của Page để chuyển đổi từng Product thành ProductSummaryDTO
+        return productPage.map(productMapper::toProductSummaryDTO);
     }
 
     @Override
@@ -51,6 +55,9 @@ public class ProductServiceImpl implements ProductService {
         product.setPrice(productRequestDTO.price());
         product.setStockQuantity(productRequestDTO.stockQuantity());
         product.setCategory(category);
+
+        product.setThumbnailUrl(productRequestDTO.thumbnailUrl());
+        product.setImageUrls(productRequestDTO.imageUrls());
 
         return productRepository.save(product);
     }
@@ -88,5 +95,34 @@ public class ProductServiceImpl implements ProductService {
             return Collections.emptyList();
         }
         return productRepository.findSuggestions(keyword, PageRequest.of(0, limit));
+    }
+
+    @Override
+    @Transactional
+    public Product updateProduct(Long id, ProductRequestDTO productRequestDTO) {
+        Product existingProduct = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+
+        Category category = categoryService.getCategoryById(productRequestDTO.categoryId());
+
+        existingProduct.setName(productRequestDTO.name());
+        existingProduct.setDescription(productRequestDTO.description());
+        existingProduct.setPrice(productRequestDTO.price());
+        existingProduct.setStockQuantity(productRequestDTO.stockQuantity());
+        existingProduct.setCategory(category);
+
+        existingProduct.setThumbnailUrl(productRequestDTO.thumbnailUrl());
+        existingProduct.setImageUrls(productRequestDTO.imageUrls());
+
+        return productRepository.save(existingProduct);
+    }
+
+    @Override
+    @Transactional
+    public void deleteProduct(Long id) {
+        if (!productRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Product not found with id: " + id);
+        }
+        productRepository.deleteById(id);
     }
 }

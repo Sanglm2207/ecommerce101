@@ -43,16 +43,6 @@ public class SecurityConfig {
                         .requestMatchers(whiteList).permitAll()
                         // Cho phép các request GET để xem sản phẩm và danh mục
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/**", "/api/v1/categories/**").permitAll()
-
-                        // --- ĐÂY LÀ PHẦN THÊM MỚI QUAN TRỌNG ---
-                        // Yêu cầu vai trò USER cho các API giỏ hàng và đơn hàng của người dùng
-//                        .requestMatchers("/api/v1/cart/**").hasRole("USER")
-                        .requestMatchers("/api/v1/orders/**").hasRole("USER")
-
-                        // Yêu cầu vai trò ADMIN cho các API quản trị
-                        // Mặc dù đã có @PreAuthorize, thêm ở đây là một lớp bảo vệ nữa
-                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-
                         // Bất kỳ request nào khác chưa được định nghĩa ở trên đều phải được xác thực
                         .anyRequest().authenticated()
                 )

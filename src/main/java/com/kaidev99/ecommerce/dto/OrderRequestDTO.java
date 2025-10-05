@@ -13,5 +13,7 @@ public record OrderRequestDTO(
         String shippingAddress,
 
         @NotBlank(message = "Payment method is required")
-        String paymentMethod
+        String paymentMethod,
+
+        String couponCode
 ) {}

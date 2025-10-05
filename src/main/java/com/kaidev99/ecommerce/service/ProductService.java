@@ -12,7 +12,7 @@ import org.springframework.data.jpa.domain.Specification;
 import java.util.List;
 
 public interface ProductService {
-    Page<Product> findAll(Specification<Product> spec, Pageable pageable);
+    Page<ProductSummaryDTO> findAll(Specification<Product> spec, Pageable pageable);
 
     Product getProductById(Long id);
 
@@ -26,4 +26,17 @@ public interface ProductService {
 
     List<ProductSuggestionDTO> getSearchSuggestions(String keyword, int limit);
 
+    /**
+     * Cập nhật thông tin một sản phẩm.
+     * @param id ID của sản phẩm cần cập nhật
+     * @param productRequestDTO DTO chứa thông tin mới
+     * @return Sản phẩm sau khi đã được cập nhật
+     */
+    Product updateProduct(Long id, ProductRequestDTO productRequestDTO);
+
+    /**
+     * Xóa một sản phẩm.
+     * @param id ID của sản phẩm cần xóa
+     */
+    void deleteProduct(Long id);
 }

@@ -29,7 +29,7 @@ public class ProductController {
 
     private final ProductService productService;
 
-    // API để tạo sản phẩm mới
+    // --- API CHO ADMIN: Tạo sản phẩm ---
     @PostMapping("/")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Product>> createProduct(@Valid @RequestBody ProductRequestDTO productRequestDTO) {
@@ -39,15 +39,33 @@ public class ProductController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @GetMapping("/")
-    public ResponseEntity<ApiResponse<Page<Product>>> getProducts(
-            @Filter Specification<Product> spec,
-            Pageable pageable
-    ) {
+    // --- API CHO ADMIN: Cập nhật sản phẩm ---
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Product>> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductRequestDTO productRequestDTO) {
+        Product updatedProduct = productService.updateProduct(id, productRequestDTO); // Giả sử bạn có service này
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK,"Product updated successfully", updatedProduct));
+    }
 
-        Page<Product> productPage = productService.findAll(spec, pageable);
-        System.out.println("Product Page: " + productPage);
-        return ResponseEntity.ok(ApiResponse.success(productPage));
+    // --- API CHO ADMIN: Xóa sản phẩm ---
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Long id) {
+        productService.deleteProduct(id); // Giả sử bạn có service này
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK, "Product deleted successfully"));
+    }
+
+    // --- CÁC API PUBLIC (GET) ---
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<Page<ProductSummaryDTO>>> getProducts(
+            @Filter(entityClass = Product.class) Specification<Product> spec,
+            Pageable pageable) {
+
+        Specification<Product> finalSpec = (spec == null) ? Specification.where((Specification<Product>) null) : spec;
+
+        Page<ProductSummaryDTO> productDtoPage = productService.findAll(finalSpec, pageable);
+        return ResponseEntity.ok(ApiResponse.success(productDtoPage));
     }
 
     @GetMapping("/{id}")

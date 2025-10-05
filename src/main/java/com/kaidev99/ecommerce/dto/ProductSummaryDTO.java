@@ -8,5 +8,6 @@ public record ProductSummaryDTO(
         String name,
         BigDecimal price,
         LocalDateTime createdAt,
-        CategoryDTO category
+        CategoryDTO category,
+        String thumbnailUrl
 ) {}

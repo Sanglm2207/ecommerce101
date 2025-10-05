@@ -2,6 +2,7 @@ package com.kaidev99.ecommerce.dto;
 
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
+import java.util.List;
 
 public record ProductRequestDTO(
         @NotBlank(message = "Product name is required") @Size(min = 3, max = 200, message = "Product name must be between 3 and 200 characters") String name,
@@ -12,5 +13,7 @@ public record ProductRequestDTO(
 
         @NotNull(message = "Stock quantity is required") @Min(value = 0, message = "Stock quantity cannot be negative") int stockQuantity,
 
-        @NotNull(message = "Category ID is required") Long categoryId) {
+        @NotNull(message = "Category ID is required") Long categoryId,
+        String thumbnailUrl,
+        List<String> imageUrls) {
 }

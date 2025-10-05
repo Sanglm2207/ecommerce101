@@ -23,7 +23,8 @@ public class ProductMapper {
                 product.getName(),
                 product.getPrice(),
                 product.getCreatedAt(),
-                categoryDTO
+                categoryDTO,
+                product.getThumbnailUrl()
         );
     }
 }
