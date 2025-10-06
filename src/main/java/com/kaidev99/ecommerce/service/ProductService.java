@@ -1,14 +1,16 @@
 package com.kaidev99.ecommerce.service;
 
-import com.kaidev99.ecommerce.dto.ProductDetailDTO;
-import com.kaidev99.ecommerce.dto.ProductRequestDTO;
-import com.kaidev99.ecommerce.dto.ProductSuggestionDTO;
-import com.kaidev99.ecommerce.dto.ProductSummaryDTO;
+import com.kaidev99.ecommerce.dto.*;
 import com.kaidev99.ecommerce.entity.Product;
+import com.opencsv.exceptions.CsvValidationException;
+import org.apache.poi.ss.usermodel.Row;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface ProductService {
@@ -26,17 +28,10 @@ public interface ProductService {
 
     List<ProductSuggestionDTO> getSearchSuggestions(String keyword, int limit);
 
-    /**
-     * Cập nhật thông tin một sản phẩm.
-     * @param id ID của sản phẩm cần cập nhật
-     * @param productRequestDTO DTO chứa thông tin mới
-     * @return Sản phẩm sau khi đã được cập nhật
-     */
     Product updateProduct(Long id, ProductRequestDTO productRequestDTO);
 
-    /**
-     * Xóa một sản phẩm.
-     * @param id ID của sản phẩm cần xóa
-     */
     void deleteProduct(Long id);
+
+    ProductImportResult importProducts(MultipartFile file) throws IOException, CsvValidationException;
+
 }

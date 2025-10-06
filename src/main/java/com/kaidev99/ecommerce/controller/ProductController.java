@@ -1,9 +1,6 @@
 package com.kaidev99.ecommerce.controller;
 
-import com.kaidev99.ecommerce.dto.ProductDetailDTO;
-import com.kaidev99.ecommerce.dto.ProductRequestDTO;
-import com.kaidev99.ecommerce.dto.ProductSuggestionDTO;
-import com.kaidev99.ecommerce.dto.ProductSummaryDTO;
+import com.kaidev99.ecommerce.dto.*;
 import com.kaidev99.ecommerce.entity.Product;
 import com.kaidev99.ecommerce.payload.ApiResponse;
 import com.kaidev99.ecommerce.service.ProductService;
@@ -12,13 +9,18 @@ import com.turkraft.springfilter.boot.Filter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -53,6 +55,42 @@ public class ProductController {
     public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id); // Giả sử bạn có service này
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK, "Product deleted successfully"));
+    }
+
+    @PostMapping("/import")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<ProductImportResult>> importProducts(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return new ResponseEntity<>(ApiResponse.error(HttpStatus.BAD_REQUEST, "Please upload a file."), HttpStatus.BAD_REQUEST);
+        }
+        try {
+            ProductImportResult result = productService.importProducts(file);
+            return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK,"Import process completed.", result));
+        } catch (Exception e) {
+            return new ResponseEntity<>(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to import products: " + e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/import/template")
+    public ResponseEntity<Resource> downloadTemplate(@RequestParam("type") String type) {
+        String filename;
+        if ("excel".equalsIgnoreCase(type)) {
+            filename = "product_template.xlsx";
+        } else if ("csv".equalsIgnoreCase(type)) {
+            filename = "product_template.csv";
+        } else {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Resource resource = new ClassPathResource("templates/" + filename);
+        if (!resource.exists()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(resource);
     }
 
     // --- CÁC API PUBLIC (GET) ---

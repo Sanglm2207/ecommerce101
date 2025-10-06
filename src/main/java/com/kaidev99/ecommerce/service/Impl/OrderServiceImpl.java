@@ -78,26 +78,22 @@ public class OrderServiceImpl implements OrderService {
             couponRepository.save(coupon);
         }
 
-        // 3. Xử lý từng item trong giỏ hàng
         for (CartItemDTO cartItem : cartItems) {
             Product product = productRepository.findById(cartItem.product().getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + cartItem.product().getId()));
 
-            // 4. Kiểm tra và giảm số lượng tồn kho
             if (product.getStockQuantity() < cartItem.quantity()) {
                 throw new IllegalStateException("Not enough stock for product: " + product.getName());
             }
             product.setStockQuantity(product.getStockQuantity() - cartItem.quantity());
-            productRepository.save(product); // Cập nhật lại sản phẩm
+            productRepository.save(product);
 
-            // 5. Tạo OrderItem
             OrderItem orderItem = new OrderItem();
             orderItem.setProduct(product);
             orderItem.setQuantity(cartItem.quantity());
             orderItem.setPriceAtPurchase(product.getPrice()); // Lưu giá tại thời điểm mua
             order.addOrderItem(orderItem);
 
-            // 6. Tính tổng tiền
             totalAmount = totalAmount.add(product.getPrice().multiply(new BigDecimal(cartItem.quantity())));
         }
 
@@ -105,14 +101,10 @@ public class OrderServiceImpl implements OrderService {
         order.setCouponCode(orderRequestDTO.couponCode());
         order.setDiscountAmount(discountAmount);
 
-        // 7. Lưu đơn hàng (bao gồm cả OrderItems nhờ cascade = CascadeType.ALL)
         Order savedOrder = orderRepository.save(order);
 
-        // 8. Xóa giỏ hàng khỏi Redis
         cartService.clearCart(user.getUsername());
 
-        // --- Gửi sự kiện thông báo ---
-        // 1. Cho Admin
         NotificationPayload adminPayload = NotificationPayload.builder()
                 .type("NEW_ORDER")
                 .message("Đơn hàng mới #" + savedOrder.getId() + " từ " + user.getUsername())
@@ -121,7 +113,6 @@ public class OrderServiceImpl implements OrderService {
                 .build();
         eventPublisher.publishNotification("notification.admin", adminPayload);
 
-        // 2. Cho User
         NotificationPayload userPayload = NotificationPayload.builder()
                 .type("ORDER_CONFIRMATION")
                 .message("Đơn hàng #" + savedOrder.getId() + " của bạn đã được đặt thành công.")
@@ -130,7 +121,6 @@ public class OrderServiceImpl implements OrderService {
                 .build();
         eventPublisher.publishNotification("notification.user." + user.getUsername(), userPayload);
 
-        // 3. Kiểm tra tồn kho thấp
         for (OrderItem item : savedOrder.getOrderItems()) {
             Product product = item.getProduct();
             if (product.getStockQuantity() < 10) { // Ngưỡng là 10
@@ -184,9 +174,6 @@ public class OrderServiceImpl implements OrderService {
                 .timestamp(LocalDateTime.now())
                 .build();
         eventPublisher.publishNotification("notification.user." + updatedOrder.getUser().getUsername(), userPayload);
-
-        System.out.println("updatedOrder>>>>>>>>>>>");
-
         return updatedOrder;
     }
 }

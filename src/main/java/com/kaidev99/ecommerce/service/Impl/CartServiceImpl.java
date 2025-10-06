@@ -27,8 +27,13 @@ public class CartServiceImpl implements CartService {
     @Override
     public void addOrUpdateItem(String username, UpdateCartDTO cartDTO) {
         // Kiểm tra xem sản phẩm có tồn tại không
-        productRepository.findById(cartDTO.productId())
+        Product product = productRepository.findById(cartDTO.productId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + cartDTO.productId()));
+
+        if (product.getStockQuantity() < cartDTO.quantity()) {
+            // Nếu số lượng yêu cầu lớn hơn tồn kho, ném ra lỗi
+            throw new IllegalArgumentException("Not enough stock for product '" + product.getName() + "'. Only " + product.getStockQuantity() + " left.");
+        }
 
         String cartKey = CART_KEY_PREFIX + username;
         String field = "productId:" + cartDTO.productId();

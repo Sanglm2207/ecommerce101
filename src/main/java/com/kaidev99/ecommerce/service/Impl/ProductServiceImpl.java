@@ -5,20 +5,33 @@ import com.kaidev99.ecommerce.entity.Category;
 import com.kaidev99.ecommerce.entity.Product;
 import com.kaidev99.ecommerce.exception.ResourceNotFoundException;
 import com.kaidev99.ecommerce.mapper.ProductMapper;
+import com.kaidev99.ecommerce.repository.CategoryRepository;
 import com.kaidev99.ecommerce.repository.ProductRepository;
 import com.kaidev99.ecommerce.service.CategoryService;
 import com.kaidev99.ecommerce.service.EventPublisher;
 import com.kaidev99.ecommerce.service.ProductService;
 
+import com.opencsv.CSVReader;
+import com.opencsv.exceptions.CsvValidationException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,6 +40,7 @@ import java.util.stream.Collectors;
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
     private final CategoryService categoryService;
     private final ProductMapper productMapper;
     private final EventPublisher eventPublisher;
@@ -136,5 +150,137 @@ public class ProductServiceImpl implements ProductService {
             throw new ResourceNotFoundException("Product not found with id: " + id);
         }
         productRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public ProductImportResult importProducts(MultipartFile file) throws IOException, CsvValidationException {
+        String filename = file.getOriginalFilename();
+        if (filename == null) {
+            throw new IllegalArgumentException("File name is null");
+        }
+
+        if (filename.endsWith(".xlsx")) {
+            return importFromExcel(file);
+        } else if (filename.endsWith(".csv")) {
+            return importFromCsv(file);
+        } else {
+            throw new IllegalArgumentException("Unsupported file type. Please upload an Excel (.xlsx) or CSV file.");
+        }
+    }
+
+    private ProductImportResult importFromExcel(MultipartFile file) throws IOException {
+        ProductImportResult result = new ProductImportResult();
+        List<Product> productsToSave = new ArrayList<>();
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook(file.getInputStream())) {
+            XSSFSheet sheet = workbook.getSheetAt(0);
+            Iterator<Row> rowIterator = sheet.iterator();
+
+            // Bỏ qua dòng header
+            if (rowIterator.hasNext()) {
+                rowIterator.next();
+            }
+
+            int rowNumber = 1;
+            while (rowIterator.hasNext()) {
+                rowNumber++;
+                Row row = rowIterator.next();
+                try {
+                    Product product = parseProductFromRow(row);
+                    productsToSave.add(product);
+                    result.incrementSuccessCount();
+                } catch (Exception e) {
+                    result.addError(rowNumber, e.getMessage());
+                }
+            }
+        }
+
+        if (!productsToSave.isEmpty()) {
+            productRepository.saveAll(productsToSave);
+        }
+        return result;
+    }
+
+    private ProductImportResult importFromCsv(MultipartFile file) throws IOException, CsvValidationException {
+        ProductImportResult result = new ProductImportResult();
+        List<Product> productsToSave = new ArrayList<>();
+
+        try (CSVReader csvReader = new CSVReader(new InputStreamReader(file.getInputStream()))) {
+            // Bỏ qua dòng header
+            csvReader.readNext();
+
+            String[] line;
+            int rowNumber = 1;
+            while ((line = csvReader.readNext()) != null) {
+                rowNumber++;
+                try {
+                    Product product = parseProductFromCsvLine(line);
+                    productsToSave.add(product);
+                    result.incrementSuccessCount();
+                } catch (Exception e) {
+                    result.addError(rowNumber, e.getMessage());
+                }
+            }
+        }
+
+        if (!productsToSave.isEmpty()) {
+            productRepository.saveAll(productsToSave);
+        }
+        return result;
+    }
+
+    private Product parseProductFromRow(Row row) {
+        String name = getCellStringValue(row.getCell(0));
+        String categoryName = getCellStringValue(row.getCell(1));
+        BigDecimal price = new BigDecimal(getCellStringValue(row.getCell(2)));
+        int stockQuantity = (int) Double.parseDouble(getCellStringValue(row.getCell(3)));
+        String description = getCellStringValue(row.getCell(4));
+
+        return createAndValidateProduct(name, categoryName, price, stockQuantity, description);
+    }
+
+    private Product parseProductFromCsvLine(String[] line) {
+        String name = line[0];
+        String categoryName = line[1];
+        BigDecimal price = new BigDecimal(line[2]);
+        int stockQuantity = Integer.parseInt(line[3]);
+        String description = line.length > 4 ? line[4] : "";
+
+        return createAndValidateProduct(name, categoryName, price, stockQuantity, description);
+    }
+
+    private Product createAndValidateProduct(String name, String categoryName, BigDecimal price, int stockQuantity, String description) {
+        if (name == null || name.isEmpty()) throw new IllegalArgumentException("Product name is required.");
+        if (categoryName == null || categoryName.isEmpty()) throw new IllegalArgumentException("Category name is required.");
+        if (price == null || price.compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException("Price must be a non-negative number.");
+        if (stockQuantity < 0) throw new IllegalArgumentException("Stock quantity cannot be negative.");
+
+        Category category = categoryRepository.findByName(categoryName)
+                .orElseThrow(() -> new IllegalArgumentException("Category '" + categoryName + "' not found."));
+
+        Product product = new Product();
+        product.setName(name);
+        product.setCategory(category);
+        product.setPrice(price);
+        product.setStockQuantity(stockQuantity);
+        product.setDescription(description);
+        // Có thể set các giá trị mặc định cho ảnh ở đây
+
+        return product;
+    }
+
+    private String getCellStringValue(Cell cell) {
+        if (cell == null) return "";
+        switch (cell.getCellType()) {
+            case STRING:
+                return cell.getStringCellValue();
+            case NUMERIC:
+                return String.valueOf(cell.getNumericCellValue());
+            case BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+            default:
+                return "";
+        }
     }
 }
