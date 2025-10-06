@@ -17,17 +17,17 @@ public class GlobalExceptionHandler {
 
     // Xử lý lỗi validation (@Valid)
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(
-            MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-        ApiResponse<Map<String, String>> response = ApiResponse.error(HttpStatus.BAD_REQUEST, "Validation failed",
-                errors.toString());
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+
+        // Trả về lỗi 400 với cấu trúc ApiResponse
+        ApiResponse<Map<String, String>> apiResponse = new ApiResponse<>(HttpStatus.BAD_REQUEST, "Validation Failed", errors, errors.toString());
+        return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
     }
 
     // Xử lý lỗi không tìm thấy tài nguyên (404)

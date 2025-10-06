@@ -1,6 +1,7 @@
 package com.kaidev99.ecommerce.service.Impl;
 
 import com.kaidev99.ecommerce.dto.CartItemDTO;
+import com.kaidev99.ecommerce.dto.NotificationPayload;
 import com.kaidev99.ecommerce.dto.OrderRequestDTO;
 import com.kaidev99.ecommerce.entity.*;
 import com.kaidev99.ecommerce.exception.ResourceNotFoundException;
@@ -8,6 +9,7 @@ import com.kaidev99.ecommerce.repository.CouponRepository;
 import com.kaidev99.ecommerce.repository.OrderRepository;
 import com.kaidev99.ecommerce.repository.ProductRepository;
 import com.kaidev99.ecommerce.service.CartService;
+import com.kaidev99.ecommerce.service.EventPublisher;
 import com.kaidev99.ecommerce.service.OrderService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -28,6 +31,7 @@ public class OrderServiceImpl implements OrderService {
     private final ProductRepository productRepository;
     private final CouponRepository couponRepository;
     private final CartService cartService;
+    private final EventPublisher eventPublisher;
 
     @Override
     @Transactional // Đảm bảo tất cả thao tác thành công hoặc rollback
@@ -107,6 +111,39 @@ public class OrderServiceImpl implements OrderService {
         // 8. Xóa giỏ hàng khỏi Redis
         cartService.clearCart(user.getUsername());
 
+        // --- Gửi sự kiện thông báo ---
+        // 1. Cho Admin
+        NotificationPayload adminPayload = NotificationPayload.builder()
+                .type("NEW_ORDER")
+                .message("Đơn hàng mới #" + savedOrder.getId() + " từ " + user.getUsername())
+                .link("/admin/orders/" + savedOrder.getId())
+                .timestamp(LocalDateTime.now())
+                .build();
+        eventPublisher.publishNotification("notification.admin", adminPayload);
+
+        // 2. Cho User
+        NotificationPayload userPayload = NotificationPayload.builder()
+                .type("ORDER_CONFIRMATION")
+                .message("Đơn hàng #" + savedOrder.getId() + " của bạn đã được đặt thành công.")
+                .link("/orders/" + savedOrder.getId())
+                .timestamp(LocalDateTime.now())
+                .build();
+        eventPublisher.publishNotification("notification.user." + user.getUsername(), userPayload);
+
+        // 3. Kiểm tra tồn kho thấp
+        for (OrderItem item : savedOrder.getOrderItems()) {
+            Product product = item.getProduct();
+            if (product.getStockQuantity() < 10) { // Ngưỡng là 10
+                NotificationPayload lowStockPayload = NotificationPayload.builder()
+                        .type("LOW_STOCK")
+                        .message("Sản phẩm '" + product.getName() + "' sắp hết hàng (còn " + product.getStockQuantity() + ").")
+                        .link("/admin/products/edit/" + product.getId())
+                        .timestamp(LocalDateTime.now())
+                        .build();
+                eventPublisher.publishNotification("notification.admin", lowStockPayload);
+            }
+        }
+
         return savedOrder;
     }
 
@@ -136,8 +173,20 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public Order updateOrderStatus(Long orderId, OrderStatus status) {
         Order order = getOrderByIdForAdmin(orderId);
-        // Có thể thêm logic kiểm tra việc chuyển trạng thái có hợp lệ không ở đây
         order.setStatus(status);
-        return orderRepository.save(order);
+        Order updatedOrder = orderRepository.save(order);
+
+        // Gửi sự kiện cập nhật trạng thái cho user
+        NotificationPayload userPayload = NotificationPayload.builder()
+                .type("ORDER_STATUS_UPDATED")
+                .message("Trạng thái đơn hàng #" + updatedOrder.getId() + " đã được cập nhật thành: " + status.name())
+                .link("/orders/" + updatedOrder.getId())
+                .timestamp(LocalDateTime.now())
+                .build();
+        eventPublisher.publishNotification("notification.user." + updatedOrder.getUser().getUsername(), userPayload);
+
+        System.out.println("updatedOrder>>>>>>>>>>>");
+
+        return updatedOrder;
     }
 }

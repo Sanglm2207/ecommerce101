@@ -30,7 +30,7 @@ public class OrderController {
     // --- API CHO USER ---
 
     @PostMapping
-    @PreAuthorize("hasRole('USER')")
+//    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<Order>> createOrder(
             @Valid @RequestBody OrderRequestDTO orderRequestDTO,
             Authentication authentication) {

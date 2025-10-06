@@ -1,15 +1,13 @@
 package com.kaidev99.ecommerce.service.Impl;
 
-import com.kaidev99.ecommerce.dto.ProductDetailDTO;
-import com.kaidev99.ecommerce.dto.ProductRequestDTO;
-import com.kaidev99.ecommerce.dto.ProductSuggestionDTO;
-import com.kaidev99.ecommerce.dto.ProductSummaryDTO;
+import com.kaidev99.ecommerce.dto.*;
 import com.kaidev99.ecommerce.entity.Category;
 import com.kaidev99.ecommerce.entity.Product;
 import com.kaidev99.ecommerce.exception.ResourceNotFoundException;
 import com.kaidev99.ecommerce.mapper.ProductMapper;
 import com.kaidev99.ecommerce.repository.ProductRepository;
 import com.kaidev99.ecommerce.service.CategoryService;
+import com.kaidev99.ecommerce.service.EventPublisher;
 import com.kaidev99.ecommerce.service.ProductService;
 
 import jakarta.transaction.Transactional;
@@ -19,6 +17,7 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,6 +29,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryService categoryService;
     private final ProductMapper productMapper;
+    private final EventPublisher eventPublisher;
 
     @Override
     public Page<ProductSummaryDTO> findAll(Specification<Product> spec, Pageable pageable) {
@@ -59,7 +59,19 @@ public class ProductServiceImpl implements ProductService {
         product.setThumbnailUrl(productRequestDTO.thumbnailUrl());
         product.setImageUrls(productRequestDTO.imageUrls());
 
-        return productRepository.save(product);
+        Product savedProduct = productRepository.save(product);
+
+        // --- GỬI SỰ KIỆN THÔNG BÁO SẢN PHẨM MỚI ---
+        NotificationPayload payload = NotificationPayload.builder()
+                .type("NEW_PRODUCT")
+                .message("Sản phẩm mới vừa được thêm: " + savedProduct.getName())
+                .link("/admin/products/edit/" + savedProduct.getId())
+                .timestamp(LocalDateTime.now())
+                .build();
+        eventPublisher.publishNotification("notification.admin", payload);
+        // ---------------------------------------------
+
+        return savedProduct;
     }
 
     @Override

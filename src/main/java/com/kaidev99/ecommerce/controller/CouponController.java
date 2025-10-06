@@ -66,7 +66,7 @@ public class CouponController {
     }
 
     @PostMapping("/validate")
-    @PreAuthorize("hasRole('USER')")
+//    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<Coupon>> validateCoupon(@RequestBody Map<String, String> payload) {
         String code = payload.get("code");
         if (code == null || code.trim().isEmpty()) {

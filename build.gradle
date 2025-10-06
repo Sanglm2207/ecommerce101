@@ -42,6 +42,9 @@ dependencies {
     implementation 'com.turkraft.springfilter:core:3.2.1'
     implementation 'com.turkraft.springfilter:jpa:3.2.1'
 
+    implementation 'org.springframework.boot:spring-boot-starter-amqp' // Cho RabbitMQ
+    implementation 'org.springframework.boot:spring-boot-starter-websocket' // Cho WebSocket
+
     //Payment
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 
