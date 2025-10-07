@@ -1,9 +1,13 @@
 package com.kaidev99.ecommerce.controller;
 
+import com.kaidev99.ecommerce.dto.ChangePasswordDTO;
+import com.kaidev99.ecommerce.dto.UserProfileDTO;
 import com.kaidev99.ecommerce.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,6 +35,32 @@ public class UserController {
         User currentUser = (User) authentication.getPrincipal();
         ApiResponse<User> response = ApiResponse.success(currentUser);
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<User>> updateMyProfile(
+            @Valid @RequestBody UserProfileDTO profileDTO,
+            Authentication authentication) {
+
+        User currentUser = (User) authentication.getPrincipal();
+        User updatedUser = userService.updateMyProfile(currentUser.getId(), profileDTO);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK, "Profile updated successfully", updatedUser));
+    }
+
+    @PatchMapping("/me/change-password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Void>> changeMyPassword(
+            @Valid @RequestBody ChangePasswordDTO passwordDTO,
+            Authentication authentication) {
+
+        User currentUser = (User) authentication.getPrincipal();
+        try {
+            userService.changeMyPassword(currentUser, passwordDTO);
+            return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK, "Password changed successfully"));
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(ApiResponse.error(HttpStatus.BAD_REQUEST, e.getMessage()), HttpStatus.BAD_REQUEST);
+        }
     }
 
     // --- API CHO ADMIN ---

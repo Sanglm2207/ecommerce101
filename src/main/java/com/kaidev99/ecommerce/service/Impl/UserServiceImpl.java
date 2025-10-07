@@ -1,5 +1,7 @@
 package com.kaidev99.ecommerce.service.Impl;
 
+import com.kaidev99.ecommerce.dto.ChangePasswordDTO;
+import com.kaidev99.ecommerce.dto.UserProfileDTO;
 import com.kaidev99.ecommerce.entity.Role;
 import com.kaidev99.ecommerce.entity.User;
 import com.kaidev99.ecommerce.exception.ResourceNotFoundException;
@@ -9,6 +11,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Service;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public Page<User> getAllUsers(Pageable pageable) {
@@ -63,5 +67,37 @@ public class UserServiceImpl implements UserService {
         }
 
         userRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public User updateMyProfile(Long userId, UserProfileDTO profileDTO) {
+        User user = getUserById(userId);
+
+        user.setEmail(profileDTO.email());
+        user.setFullName(profileDTO.fullName());
+        user.setPhone(profileDTO.phone());
+        user.setAddress(profileDTO.address());
+        user.setAvatarUrl(profileDTO.avatarUrl());
+
+        return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void changeMyPassword(User user, ChangePasswordDTO passwordDTO) {
+        // Kiểm tra mật khẩu hiện tại có đúng không
+        if (!passwordEncoder.matches(passwordDTO.currentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Incorrect current password.");
+        }
+
+        // Kiểm tra mật khẩu mới và xác nhận có khớp không
+        if (!passwordDTO.newPassword().equals(passwordDTO.confirmationPassword())) {
+            throw new IllegalArgumentException("New password and confirmation password do not match.");
+        }
+
+        // Mã hóa và cập nhật mật khẩu mới
+        user.setPassword(passwordEncoder.encode(passwordDTO.newPassword()));
+        userRepository.save(user);
     }
 }
