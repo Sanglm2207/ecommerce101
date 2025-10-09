@@ -49,6 +49,13 @@ dependencies {
     // OpenCSV để đọc file CSV
     implementation 'com.opencsv:opencsv:5.9'
 
+     // --- iTextPDF ---
+    // iText Core
+    implementation 'com.itextpdf:kernel:8.0.4'
+    implementation 'com.itextpdf:layout:8.0.4'
+    // Để xử lý font
+    implementation 'com.itextpdf:io:8.0.4'
+
     implementation 'org.springframework.boot:spring-boot-starter-amqp' // Cho RabbitMQ
     implementation 'org.springframework.boot:spring-boot-starter-websocket' // Cho WebSocket
 
